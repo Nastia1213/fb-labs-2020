@@ -10,6 +10,8 @@ map<int, char> ABC = { {0, 'а'}, {1, 'б'}, {2, 'в'}, {3, 'г'},{4, 'д'}, {5, 'е'}
 					   {11, 'л'},{12, 'м'}, {13, 'н'}, {14, 'о'}, {15, 'п'}, {16, 'р'}, {17, 'с'}, {18, 'т'}, {19, 'у'}, {20, 'ф'},
 					   {21, 'х'}, {22, 'ц'}, {23, 'ч'}, {24, 'ш'}, {25, 'щ'}, {26, 'ь'}, {27, 'ы'}, {28, 'э'}, {29, 'ю'}, {30, 'я'} };
 
+int number_key = 0;
+
 int gcd(int a, int b, int& size_mas)
 {
 	if (a != 0 && b != 0)
@@ -24,15 +26,10 @@ int gcd(int a, int b, int& size_mas)
 				size_mas++;
 			}
 			b = b - a;
-
 		}
 		return a;
 	}
-	else
-	{
-		a = 1;
-		return 1;
-	}
+	return b;
 }
 
 void encoder(string file, int a, int b)
@@ -91,7 +88,7 @@ void encoder(string file, int a, int b)
 		}
 	}
 	else
-		cout << "Числo а ключа не є взаємно просте з довжиною алфавіта, введіть інший ключ)" << endl;
+		std::cout << "Числo а ключа не є взаємно просте з довжиною алфавіта, введіть інший ключ)" << endl;
 
 	in_encoder.seekg(0, std::ios::beg);
 	in_encoder.close();
@@ -99,12 +96,12 @@ void encoder(string file, int a, int b)
 	out_encoder.close();
 }
 
-int evk(int a, int m, int size_mas)
+int inverted_element(int a, int m, int size_mas)
 {
 	int* mas = new int[size_mas];
 	
-	int c = 0, i = 2;
-	if (a != 0 && m != 0)
+	int c = 0, i = 2,n=m;
+	if (a != 0)
 	{
 		mas[0] = 0;
 		mas[1] = 1;
@@ -126,11 +123,16 @@ int evk(int a, int m, int size_mas)
 		{
 			mas[j] = mas[j] * mas[j - 1] + mas[j - 2];
 		}
+
 		a = mas[size_mas - 1];
+		while (a > n) a = a - n;
+		while (a < 0) a = a + n;
+		size_mas = 2;
 		delete[] mas;
 		return a;
 	}
 	else
+		size_mas = 2;
 		delete[]mas;
 		return 0;
 }
@@ -175,9 +177,7 @@ bool decoder(string file, int a, int b)
 			}
 
 			Y = y1 * m + y2;
-			a_1 = evk(a, m_2, size_mas);
-			while (a_1 > m_2) a_1 = a_1 - m_2;
-			while (a_1 < 0) a_1 = a_1 + m_2;
+			a_1 = inverted_element(a, m_2, size_mas);
 			X = ((Y - b) * a_1) % m_2;
 			while (X > m_2) X = X - m_2;
 			while (X < 0) X = X + m_2;
@@ -202,9 +202,11 @@ bool decoder(string file, int a, int b)
 	}
 	else
 	{
-		cout << "Числo а ключа не є взаємно просте з довжиною алфавіта, введіть інший ключ)" << endl;
+		std::cout << "Числo а ключа не є взаємно просте з довжиною алфавіта, спробуйте інший ключ)" << endl;
 		return false;
 	}
+
+
 }
 
 void pop_bigrams(string file, int size)
@@ -262,6 +264,7 @@ void pop_bigrams(string file, int size)
 			}
 		}
 	}
+
 	in_pop.seekg(0, std::ios::beg);
 	in_pop.close();
 	out_pop.seekp(0, std::ios::beg);
@@ -331,6 +334,7 @@ void pop_monograms(string file, int size)
 			}
 		}
 	}
+
 	out_mono.close();
 	in_mono.seekg(0, std::ios::beg);
 	in_mono.close();
@@ -345,11 +349,12 @@ bool text_check(string file)
 	int a = 0, i = 0;
 	char symbol, symbol1, symbol2;
 	char pop_leter[5] = { 'о','е','а','и','н' };
-	char pop_leter_in_text[2];
+	char pop_leter_in_text[4];
 	char not_pop_leter[5] = { 'ф','э','щ','ц','ю' };
-	char not_pop_leter_in_text[2];
+	char not_pop_leter_in_text[4];
 	string pop_big[10] = { "ст","но","ен","то","на","ов","ни","ра","во","ко" };
-	string pop_big_in_text[2];
+	string pop_big_in_text[1];
+
 
 	pop_monograms("decoder_text.txt", size);
 
@@ -364,6 +369,7 @@ bool text_check(string file)
 				break;
 			}
 		}
+		if (a < size)
 		not_pop_leter_in_text[a] = symbol;
 		a++;
 
@@ -371,12 +377,14 @@ bool text_check(string file)
 		{
 			pop_leter_in_text[i] = symbol;
 			i++;
+			if (i >= size)break;
 		}
 	}
-
+	size = 1;
 	a = 0;
 	in_check.seekg(0, std::ios::beg);
 	in_check.close();
+
 	pop_bigrams(file, size);
 
 	while (!in.eof())
@@ -404,11 +412,11 @@ bool text_check(string file)
 		bigram += symbol2;
 		pop_big_in_text[a] = bigram;
 		a++;
-		if (a >= 2)break;
+		if (a >= 1)break;
 	}
 	in.close();
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		rez = false;
 		for (int j = 0; j < 5; j++)
@@ -417,6 +425,11 @@ bool text_check(string file)
 		}
 		if (rez == false)
 		{
+			std::cout << "Не пройшло перевірку на найчастіші монограми" << endl;
+			std::cout << "Найпопулярніші монограми:";
+			for (int j = 0; j < 4; j++)
+				std::cout << " " << pop_leter_in_text[j];
+			std::cout << endl;
 			in_check.clear();
 			in_check.close();
 
@@ -425,7 +438,7 @@ bool text_check(string file)
 	}
 
 	rez = false;
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		rez = false;
 		for (int j = 0; j < 5; j++)
@@ -434,6 +447,11 @@ bool text_check(string file)
 		}
 		if (rez == false)
 		{
+			std::cout << "Не пройшло перевірку на найрідші монограми" << endl;
+			std::cout << "Найрідші моногрaми:";
+			for (int j = 0; j < 4; j++)
+				std::cout << " " << not_pop_leter_in_text[j];
+			std::cout << endl;
 			in_check.clear();
 			in_check.close();
 
@@ -442,7 +460,7 @@ bool text_check(string file)
 	}
 
 	rez = false;
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		rez = false;
 		for (int j = 0; j < 10; j++)
@@ -451,18 +469,30 @@ bool text_check(string file)
 		}
 		if (rez == false)
 		{
+			std::cout << "Не пройшло перевірку на найчастіші біграми" << endl;
 			in_check.clear();
 			in_check.close();
 
 			return rez;
 		}
 	}
-	if (rez == true)
-	{
+	std::cout << "Пройшло перевірку, наш ключ" << endl;
+	std::cout << "Найпопулярніші монограми:";
+	for (int j = 0; j < 4; j++)
+		std::cout << " " << pop_leter_in_text[j];
+	std::cout << endl;
+	std::cout << "Найрідші моногрaми:";
+	for (int j = 0; j < 4; j++)
+		std::cout << " " << not_pop_leter_in_text[j];
+	std::cout << endl;
+	std::cout << "Найчастіша монограма:";
+	for (int j = 0; j < 1; j++)
+		std::cout << " " << pop_big_in_text[j];
+	std::cout << endl;
 		in_check.close();
-
+		a = 0; i = 0;
 		return rez;
-	}
+
 }
 
 int XY(string big, int m)
@@ -482,10 +512,47 @@ int XY(string big, int m)
 	rez = x * m + y;
 	return rez;
 }
+bool evk(int X, int Y, int Y1, int X1, int m, int size_mas, int d, string file )
+{
+	int a, b, x1, y1, n1, i;
+	bool rez=false; 
+	size_mas = 2;
+	i = d;
+
+		if (Y % d == 0)
+		{
+			n1 = m / d;
+			x1 = X / d;
+			y1 = Y / d;
+			gcd(x1, n1, size_mas);
+			x1 = inverted_element(x1, n1, size_mas);
+			a = (y1 * x1) % n1;
+			if (a < 0)a = a + m;
+
+				for (i ; i > 0; i--)
+				{
+					a = a + ((d - i) * n1);
+					b = (Y1 - a * X1) % m;
+					if (b < 0)b = b + m;
+					number_key++;
+					std::cout << "Ключ " << number_key << ":  " << a << " " << b<<endl;
+
+						rez = decoder(file, a, b);
+						if (rez == true)
+						{
+							rez = text_check("decoder_text.txt");
+							if (rez == true) return rez;
+						}
+					
+				}
+		}
+		rez = false;
+	return rez;
+}
 
 bool key(string rus_big1, string rus_big2, string big1, string big2, string file)
 {
-	int X1, X2, Y1, Y2, X, m_2, m = 31, i = 0, a, b, size_mas = 2;
+	int X1, X2, Y1, Y2, X, Y, m_2, m = 31, a, b, size_mas = 2, d;
 	bool rez=true;
 
 	m_2 = m * m;
@@ -494,25 +561,35 @@ bool key(string rus_big1, string rus_big2, string big1, string big2, string file
 	Y1 = XY(big1, m);
 	Y2 = XY(big2, m);
 	X = X1 - X2;
+	Y = Y1 - Y2;
 	while (X < 0) X = X + m_2;
-	gcd(X, m, size_mas);
-	X = evk(X, m_2, size_mas);
-	while (X > m_2) X = X - m_2;
-	while (X < 0) X = X + m_2;
-	a = ((Y1 - Y2) * X) % m_2;
-	b = (Y1 - a * X1) % m_2;
-	if (a < 0)a = a + m_2;
-	if (b < 0)b = b + m_2;
+	while (Y < 0) Y = Y + m_2;
+	d = gcd(X, m_2, size_mas);
 
-	rez = decoder(file, a, b);
-	if (rez == true)
-	{
-		cout << a << "  " << b << endl;
-		rez = text_check("decoder_text.txt");
+		if (d == 1)
+		{
+			X = inverted_element(X, m_2, size_mas);
+			a = (Y * X) % m_2;
+			b = (Y1 - a * X1) % m_2;
+			if (a < 0)a = a + m_2;
+			if (b < 0)b = b + m_2;
+			number_key++;
+			std::cout << "Ключ " << number_key << ":  " << a << " " << b << endl;
+
+			rez = decoder(file, a, b);
+			if (rez == true)
+			{
+				rez = text_check("decoder_text.txt");
+				return rez;
+			}
+			else
+				return rez;
+		}
+
+		else rez = evk(X, Y, Y1, X1, m_2, size_mas, d, file);
 		return rez;
-	}
-	else
-		return rez;
+
+	
 }
 
 int main()
@@ -530,30 +607,30 @@ int main()
 	while (!in.eof())
 	{
 
-		while (!in.eof())
-		{
-			symbol1 = in.get();
-
-			if (symbol1 != '\n')
+			while (!in.eof())
 			{
-				break;
-			}
-		}
-		while (!in.eof())
-		{
-			symbol2 = in.get();
+				symbol1 = in.get();
 
-			if (symbol2 != '\n')
-			{
-				break;
+				if (symbol1 != '\n')
+				{
+					break;
+				}
 			}
-		}
-		string bigram;
-		bigram += symbol1;
-		bigram += symbol2;
-		pop[i] = bigram;
-		i++;
-		if (i >= size)break;
+			while (!in.eof())
+			{
+				symbol2 = in.get();
+
+				if (symbol2 != '\n')
+				{
+					break;
+				}
+			}
+			string bigram;
+			bigram += symbol1;
+			bigram += symbol2;
+			pop[i] = bigram;
+			i++;
+			if (i >= size)break;
 	}
 	in.close();
 
@@ -562,22 +639,26 @@ int main()
 	{
 		for (int j = 0; j < 5; j++)
 		{
-			for (int n = 0; n < 5; n++)
+			if (i != j)
 			{
-				for (int t = 0; t < 5; t++)
+				for (int n = 0; n < 5; n++)
 				{
-					a++;
-					cout << a << "  ";
-					true_kye = key(pop_in_rus[i], pop_in_rus[j], pop[n], pop[t], "08.txt");
+					for (int t = 0; t < 5; t++)
+					{
+						if (n != t)
+						{
+							true_kye = key(pop_in_rus[i], pop_in_rus[j], pop[n], pop[t], "08.txt");
+							if (true_kye == true) break;
+						}
+					}
 					if (true_kye == true) break;
-
 				}
 				if (true_kye == true) break;
 			}
-			if (true_kye == true) break;
 		}
 		if (true_kye == true) break;
 	}
-
+	//inverted_element(128, 961, 6);
+	
 	return 0;
 }
