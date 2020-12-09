@@ -8,17 +8,18 @@ using namespace boost::random;
 
 
 
-cpp_int ChooseRandomNumber()
-{
-    cpp_int x = -1;
-    while (x < 0)
-    {
-        typedef boost::mt19937 RNGType;
-        boost::random::random_device rd;
-        RNGType rng(rd());
-        uniform_int_distribution<cpp_int> ui(-(cpp_int(1) << 256), cpp_int(1) << 256);
-        x = ui(rng);
-    }
+cpp_int ChooseRandomNumber(int bit)
+{ 
+    cpp_int max = ((cpp_int)(1)) << bit;
+    cpp_int min = ((cpp_int)(1)) << bit - 1;
+    cpp_int x;
+            
+    typedef boost::mt19937 RNGType;
+    boost::random::random_device rd;
+    RNGType rng(rd());
+    uniform_int_distribution<cpp_int> ui(min, max);
+    x = ui(rng);
+   
     return x;
 }
 
@@ -27,17 +28,8 @@ cpp_int RandomNumberWithin(cpp_int x, cpp_int y)
     typedef mt19937 RNGType;
     random_device rd;
     RNGType mt(rd());
-    if (x == 2)
-    {
-        uniform_int_distribution<cpp_int> ui(cpp_int(2), cpp_int(y));
-        return ui(mt);
-    }
-    else if (x == 0)
-    {
-        uniform_int_distribution<cpp_int> ui(cpp_int(0), cpp_int(y));
-        return ui(mt);
-    }
-
+    uniform_int_distribution<cpp_int> ui(x, cpp_int(y));
+    return ui(mt);
 }
 
 cpp_int gcd(cpp_int a, cpp_int b)
@@ -208,7 +200,7 @@ void GenerateKeyPair(cpp_int mas[])
     bool b = false;
     while (b == false)
     {
-        p = ChooseRandomNumber();
+        p = ChooseRandomNumber(256);
        // std::cout << "p: " << p << std::endl;
         b = test(p);
 
@@ -216,7 +208,7 @@ void GenerateKeyPair(cpp_int mas[])
     b = false;
     while (b == false)
     {
-        q = ChooseRandomNumber();
+        q = ChooseRandomNumber(256);
         //std::cout << "q: " << q << std::endl;
         b = test(q);
 
@@ -251,18 +243,12 @@ void KeyExchange(cpp_int Key[], cpp_int n, cpp_int e)
 
 cpp_int Sign(cpp_int S, cpp_int n, cpp_int e)
 {
-
-    cpp_int S1 = binpow(S, e, n);
-    return S1;
+    return binpow(S, e, n);
 }
 
-void Encrypt(cpp_int key[], cpp_int message[])
+cpp_int Encrypt(cpp_int k, cpp_int e, cpp_int n)
 {
-    cpp_int k = 123456789;
-    std::cout << "k " << k << std::endl;
-    message[0] = binpow(k, key[6], key[5]);
-    cpp_int S = binpow(k, key[0], key[3]);
-    message[1] = Sign(S, key[5], key[6]);
+     return binpow(k, e, n);
 }
 
 void Verify(cpp_int k,cpp_int S, cpp_int n, cpp_int e )
@@ -274,9 +260,23 @@ void Verify(cpp_int k,cpp_int S, cpp_int n, cpp_int e )
         std::cout << "Автентифікацію не було пройдено" << std::endl;
 }
 
-void Decrypt(cpp_int key[], cpp_int message[], int x)
+cpp_int Decrypt(cpp_int k, cpp_int d, cpp_int n)
 {
-    cpp_int k = binpow(message[0], key[0], key[3]);
+    return binpow(k, d, n);
+}
+
+void SendKey(cpp_int key[], cpp_int message[])
+{
+    cpp_int k = 123456789;
+    std::cout << "k " << k << std::endl;
+    message[0] = Encrypt(k, key[6], key[5]);
+    cpp_int S = binpow(k, key[0], key[3]);
+    message[1] = Sign(S, key[5], key[6]);
+}
+
+void ReceiveKey(cpp_int key[], cpp_int message[], int x)
+{
+    cpp_int k = Decrypt(message[0], key[0], key[3]);
     cpp_int S = binpow(message[1], key[0], key[3]);
     Verify(k, S, key[5], key[6]);
     if (x == 1)
@@ -284,13 +284,13 @@ void Decrypt(cpp_int key[], cpp_int message[], int x)
         std::cout << std::hex << std::showbase;
         std::cout << "k " << k << std::endl;
     }
-    std::cout << "k " << k << std::endl;
+    else
+        std::cout << "k " << k << std::endl;
 }
 
 int main()
 {
-
-    setlocale(LC_CTYPE, "rus");
+   setlocale(LC_CTYPE, "rus");
     cpp_int AKey[7];
     cpp_int BKey[7];
     cpp_int message[2];
@@ -320,10 +320,10 @@ int main()
     std::cout << "ea " << BKey[6] << std::endl;
     std::cout << std::endl;
     std::cout << std::endl;
-    Encrypt(AKey, message);
+    SendKey(AKey, message);
     std::cout << "k1 " << message[0] << std::endl;
     std::cout << "S1 " << message[1] << std::endl;
-    Decrypt(BKey, message,0);
+    ReceiveKey(BKey, message,0);
 
     cpp_int MKey[7];
     MKey[0] = 0;
@@ -370,11 +370,11 @@ int main()
     std::cout << "ea " << MKey[6] << std::endl;
     std::cout << std::endl;
     std::cout << std::endl;
-    Encrypt(AKey, message);
+    SendKey(AKey, message);
     std::cout << std::hex << std::showbase;
     std::cout << "k1 " << message[0] << std::endl;
     std::cout << std::hex << std::showbase;
     std::cout << "S1 " << message[1] << std::endl;
-    Decrypt(MKey, message,1);
+    ReceiveKey(MKey, message,1);
     return 0;
 }
